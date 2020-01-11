@@ -4,7 +4,7 @@ When playing the game of Yahtzee and all that is left is to roll a Yahtzee in yo
 there are a couple options for how to proceed if stuck in the terrible situation of all five
 dice in your first roll being different.
 
-This project is an attempt to try to understand which of the following scenarios is best.
+This project is an attempt to try to understand which of the following strategies is best.
 
 1. Prior to the second roll, choose a die at random from the first five to hold back. 
 - Then roll the remaining four dice to try to get a Yahtzee in the second turn. 
