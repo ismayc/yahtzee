@@ -1,0 +1,83 @@
+---
+output: github_document
+---
+
+```{r setup}
+options(scipen = 99)
+simulations <- format(c(1e3, 1e4, 1e5, 1e6), big.mark = ",")#, 1e7)
+chester_1e3 <- readr::read_rds("chester_1e+03-simulations.rds")
+other_1e3 <- readr::read_rds("other_1e+03-simulations.rds")
+chester_1e4 <- readr::read_rds("chester_1e+04-simulations.rds")
+other_1e4 <- readr::read_rds("other_1e+04-simulations.rds")
+chester_1e5 <- readr::read_rds("chester_1e+05-simulations.rds")
+other_1e5 <- readr::read_rds("other_1e+05-simulations.rds")
+chester_1e6 <- readr::read_rds("chester_1e+06-simulations.rds")
+other_1e6 <- readr::read_rds("other_1e+06-simulations.rds")
+#chester_1e7 <- readr::read_rds("chester_1e+07-simulations.rds")
+#other_1e7 <- readr::read_rds("other_1e+07-simulations.rds")
+
+get_2nd_roll_perc <- function(df){
+  mean(df$yahtzee == TRUE) * 100
+}
+
+chester_1e3_2nd_roll_perc <- get_2nd_roll_perc(chester_1e3)
+other_1e3_2nd_roll_perc <- get_2nd_roll_perc(other_1e3)
+chester_1e4_2nd_roll_perc <- get_2nd_roll_perc(chester_1e4)
+other_1e4_2nd_roll_perc <- get_2nd_roll_perc(other_1e4)
+chester_1e5_2nd_roll_perc <- get_2nd_roll_perc(chester_1e5)
+other_1e5_2nd_roll_perc <- get_2nd_roll_perc(other_1e5)
+chester_1e6_2nd_roll_perc <- get_2nd_roll_perc(chester_1e6)
+other_1e6_2nd_roll_perc <- get_2nd_roll_perc(other_1e6)
+#chester_1e7_2nd_roll_perc <- get_2nd_roll_perc(chester_1e7)
+#other_1e7_2nd_roll_perc <- get_2nd_roll_perc(other_1e7)
+
+chesters_2nd <- c(chester_1e3_2nd_roll_perc,
+                  chester_1e4_2nd_roll_perc,
+                  chester_1e5_2nd_roll_perc,
+                  chester_1e6_2nd_roll_perc)#,
+#                  chester_1e7_2nd_roll_perc)
+others_2nd <- c(other_1e3_2nd_roll_perc,
+                other_1e4_2nd_roll_perc,
+                other_1e5_2nd_roll_perc,
+                other_1e6_2nd_roll_perc)#,
+#                other_1e7_3rd_roll_perc)
+
+get_3rd_roll_perc <- function(df){
+  (mean(df$yahtzee2 == TRUE) -  mean(df$yahtzee == TRUE)) * 100
+}
+
+chester_1e3_3rd_roll_perc <- get_3rd_roll_perc(chester_1e3)
+other_1e3_3rd_roll_perc <- get_3rd_roll_perc(other_1e3)
+chester_1e4_3rd_roll_perc <- get_3rd_roll_perc(chester_1e4)
+other_1e4_3rd_roll_perc <- get_3rd_roll_perc(other_1e4)
+chester_1e5_3rd_roll_perc <- get_3rd_roll_perc(chester_1e5)
+other_1e5_3rd_roll_perc <- get_3rd_roll_perc(other_1e5)
+chester_1e6_3rd_roll_perc <- get_3rd_roll_perc(chester_1e6)
+other_1e6_3rd_roll_perc <- get_3rd_roll_perc(other_1e6)
+#chester_1e7_3rd_roll_perc <- get_3rd_roll_perc(chester_1e7)
+#other_1e7_3rd_roll_perc <- get_3rd_roll_perc(other_1e7)
+
+chesters_3rd <- c(chester_1e3_3rd_roll_perc,
+                  chester_1e4_3rd_roll_perc,
+                  chester_1e5_3rd_roll_perc,
+                  chester_1e6_3rd_roll_perc)#,
+#                  chester_1e7_3rd_roll_perc)
+others_3rd <- c(other_1e3_3rd_roll_perc,
+                other_1e4_3rd_roll_perc,
+                other_1e5_3rd_roll_perc,
+                other_1e6_3rd_roll_perc)#,
+#                other_1e7_3rd_roll_perc)
+
+results <- tibble::tibble(simulations,
+                  chesters_2nd,
+                  others_2nd,
+                  chesters_3rd,
+                  others_3rd)
+```
+
+Columns 2-5 below correspond to the percentage of rolls that resulted in Yahtzee. The first roll for all of these simulations was forced to be five different dice. For example, a first roll could be 1, 2, 6, 5, 4.
+
+```{r}
+knitr::kable(results)
+```
+
