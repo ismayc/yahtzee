@@ -1,5 +1,11 @@
 # yahtzee
 
+> **2026 update — solved exactly.** The two strategies below are *provably equal*: both give
+> a Yahtzee with probability **221/17496 ≈ 0.0126315 (about 1 in 79.2)**. The original 2019
+> simulation was roughly right but never summed to a conclusion or reached the exact answer.
+> See [**FINDINGS.md**](FINDINGS.md) for the result, a one-line proof, and an analysis of the
+> faults in the original code. Reproducible analysis is in [`update-2026/`](update-2026/).
+
 When playing the game of Yahtzee and all that is left is to roll a Yahtzee in your last turn,
 there are a couple options for how to proceed if stuck in the terrible situation of all five
 dice in your first roll being different.

@@ -2,3 +2,9 @@
 .RData
 .Rproj.user
 /rds/
+
+# Quarto / rendered outputs
+/update-2026/report.html
+/update-2026/report_files/
+.quarto/
+*_cache/

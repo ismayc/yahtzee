@@ -1,0 +1,240 @@
+---
+title: "Yahtzee endgame: \"keep one\" vs \"reroll all\""
+subtitle: "From an all-different first roll, which chases a Yahtzee better?"
+author: "Chester Ismay"
+date: today
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    code-fold: true
+    code-tools: true
+    theme: cosmo
+    df-print: kable
+params:
+  n_sims: 1000000
+execute:
+  warning: false
+  message: false
+---
+
+```{r setup}
+#| include: false
+set.seed(123)
+library(ggplot2)
+fmt <- function(x, d = 6) formatC(x, format = "f", digits = d)
+
+# EXACT answer by full enumeration. The whole state space is tiny: the second roll has only
+# 6^5 = 7776 equally likely outcomes (Strategy 2), or 6^4 = 1296 once the held die is fixed
+# (Strategy 1). We visit every one, so there is nothing to estimate.
+#   strategy 1 = hold one die (reroll 4); strategy 2 = reroll all 5.
+#   The held die's face is irrelevant by symmetry, so we fix it to 1.
+enumerate <- function(strategy) {
+  k    <- if (strategy == 1L) 4L else 5L
+  grid <- as.matrix(expand.grid(rep(list(1:6), k)))   # 6^k rows, all equally likely
+  shape <- integer(5)                                  # count of outcomes by best group size
+  for (i in seq_len(nrow(grid))) {
+    dice5 <- if (strategy == 1L) c(1L, grid[i, ]) else grid[i, ]
+    have  <- max(tabulate(dice5, nbins = 6L))
+    shape[have] <- shape[have] + 1L
+  }
+  shape_p <- shape / nrow(grid)                        # exact P(best group = 1..5)
+  # The win prob depends only on the best group size, so averaging over the shape histogram
+  # is the exact mean over all outcomes -- and identical shapes give bit-identical answers.
+  list(p = sum(shape_p * (1/6)^(5L - 1:5)), shape = shape_p, n = nrow(grid))
+}
+
+e1 <- enumerate(1L)            # exact -- Strategy 1
+e2 <- enumerate(2L)            # exact -- Strategy 2
+P_EXACT <- e2$p               # = 221/17496; e1$p is bit-identical (checked below)
+
+# ---- A million random second rolls, then collapse the duplicates ----
+# Strategy 2 (reroll all 5) carries the whole story; Strategy 1 shares the same shape
+# distribution (see the enumeration above). We keep the big run but show it adds nothing.
+n_sims <- params$n_sims
+draws  <- matrix(sample.int(6, n_sims * 5L, replace = TRUE), ncol = 5L)  # n_sims 2nd rolls
+counts <- sapply(1:6, function(f) rowSums(draws == f))                   # face counts, n x 6
+best   <- do.call(pmax, as.data.frame(counts))                          # best group size each
+
+n_multisets <- nrow(unique(counts))     # distinct dice combinations actually seen (<= 252)
+n_classes   <- length(unique(best))     # distinct situations that change the answer
+emp         <- tabulate(best, 5L) / n_sims                   # empirical shape distribution
+
+# The Monte Carlo estimate is exactly those few frequencies weighted by the EXACT completion
+# probability (1/6)^(5 - k); the per-roll duplicates only sharpen the frequencies.
+est_mc <- sum(emp * (1/6)^(5L - 1:5))
+se_mc  <- sqrt(est_mc * (1 - est_mc) / n_sims)
+```
+
+## The question
+
+You roll five dice on your first Yahtzee roll and they all come up **different**. With
+two rolls left, what gives the best chance of a Yahtzee (five of a kind)?
+
+- **Strategy 1 — keep one:** hold one die, reroll the other four, then keep your largest
+  matching group and reroll the rest on the final roll.
+- **Strategy 2 — reroll all:** reroll all five, then complete the same way.
+
+## The answer
+
+They are **exactly equal**:
+
+$$P(\text{Yahtzee}) \;=\; \frac{221}{17496} \;=\; `r fmt(P_EXACT, 7)` \;\approx\; \text{1 in `r fmt(1/P_EXACT, 1)`}$$
+
+for **both** strategies. There is no lift; the difference is exactly 0.
+
+::: {.callout-note}
+## No simulation required
+The whole problem is small enough to solve **exactly by enumeration** — the second roll
+has only `6^5 = 7776` equally likely outcomes (Strategy 2) or `6^4 = 1296` once the held
+die is fixed (Strategy 1), and the final roll contributes a closed `(1/6)^{\text{need}}`.
+The number above is the exact average over every case, not an estimate. A Monte Carlo run
+appears later only as an independent cross-check.
+:::
+
+## Exact by enumeration
+
+Because the completing roll is just `(1/6)^{\text{need}}`, the only thing to enumerate is
+the second roll. We visit **every** outcome, weight each equally, and average the exact
+win probability — no randomness anywhere.
+
+```{r enumeration}
+#| echo: false
+cat(sprintf("Strategy 1 (keep one):   %s outcomes enumerated  ->  P = %.10f\n",
+            format(e1$n, big.mark = ","), e1$p))
+cat(sprintf("Strategy 2 (reroll all): %s outcomes enumerated  ->  P = %.10f\n",
+            format(e2$n, big.mark = ","), e2$p))
+cat(sprintf("221 / 17496            : %.10f\n", 221 / 17496))
+cat(sprintf("\nStrategy 1 vs Strategy 2 exact difference: %g\n", e1$p - e2$p))
+```
+
+Both enumerations return the identical value `221/17496`, and their exact difference is
+`0` — the tie is a fact about the full state space, not a statistical near-miss.
+
+## Why they tie (the short proof)
+
+After the second roll, both strategies face the *identical* decision: "given these five
+dice, keep the largest matching group and use the last roll to match the rest." So the
+only thing that could differ is the **distribution of the five dice going into that
+decision**.
+
+- Strategy 2 produces five fair dice.
+- Strategy 1 produces one fixed die plus four fair dice.
+
+These have the **same distribution of group shapes**: conditioning one die of a fair roll
+on a fixed value leaves the shape distribution unchanged (face symmetry). Take five fair
+dice and condition on die 1's value — the shape distribution is unchanged, and what
+remains is exactly Strategy 1's "one fixed die + four fair dice."
+
+Same input distribution + same decision rule ⟹ same success probability. ∎
+
+## Seeing the proof: the post-2nd-roll histograms coincide
+
+If the argument above is right, the distribution of the **best group size after the second
+roll** must be the same for both strategies. The enumeration gives both distributions
+exactly — and they are bit-for-bit identical, matching the shape distribution of five fair
+dice.
+
+```{r histogram-table}
+#| echo: false
+exact_shape <- c(720, 5400, 1500, 150, 6) / 7776   # theoretical shape distribution of 5 dice
+tab <- rbind(
+  `Theory (5 dice)`        = exact_shape,
+  `Strategy 1 (exact)`     = e1$shape,
+  `Strategy 2 (exact)`     = e2$shape
+)
+colnames(tab) <- paste0(1:5, "-of-a-kind")
+knitr::kable(round(tab, 6),
+             caption = "P(best matching group = k) immediately after the 2nd roll -- exact, by enumeration")
+```
+
+The two strategy rows are identical (max difference
+`r formatC(max(abs(e1$shape - e2$shape)), format = "g")`), which is the proof made
+concrete: same intermediate distribution ⟹ same Yahtzee odds.
+
+```{r histogram-plot}
+#| echo: false
+#| fig-width: 8
+#| fig-height: 4
+#| fig-cap: "The shared shape distribution both strategies feed into the final roll (exact, by enumeration)."
+plot_df <- data.frame(k = factor(1:5), prob = e2$shape)
+ggplot(plot_df, aes(k, prob)) +
+  geom_col(fill = "#1b9e77", width = 0.7) +
+  geom_text(aes(label = scales::percent(prob, accuracy = 0.01)), vjust = -0.4, size = 3.4) +
+  scale_y_continuous(labels = scales::percent, expand = expansion(mult = c(0, 0.12))) +
+  labs(x = "Best matching group after the 2nd roll", y = "Probability",
+       title = "Same intermediate state -> same Yahtzee odds (both strategies)") +
+  theme_minimal(base_size = 13)
+```
+
+## The closed form
+
+With optimal completion, if the best group after the second roll has size $k$, the final
+roll completes the Yahtzee with probability $(1/6)^{5-k}$. Averaging over the shape
+distribution above:
+
+$$\begin{aligned}
+P(\text{Yahtzee})&=\sum_{k=1}^{5} P(\text{best}=k)\,\Big(\tfrac{1}{6}\Big)^{5-k}\\[4pt]
+&=\frac{1}{7776}\Big(720\cdot\tfrac{1}{1296}+5400\cdot\tfrac{1}{216}+1500\cdot\tfrac{1}{36}+150\cdot\tfrac{1}{6}+6\Big)
+=\frac{884/9}{7776}=\frac{221}{17496}.
+\end{aligned}$$
+
+```{r closed-form-check}
+#| echo: false
+num <- sum(exact_shape * (1/6)^(5 - 1:5))   # rebuild the closed form from the shape dist
+cat(sprintf("Rebuilt from shape distribution: %.10f\n", num))
+cat(sprintf("221/17496                      : %.10f\n", P_EXACT))
+cat(sprintf("Match: %s\n", isTRUE(all.equal(num, P_EXACT))))
+```
+
+## A million trials, then remove the duplicates
+
+We can still run the big simulation — and seeing what happens to it explains why it can't
+beat the enumeration. Draw **`r format(n_sims, big.mark = ",")`** random second rolls
+(`set.seed(123)`). Those millions of rolls contain only a handful of genuinely distinct
+situations:
+
+```{r dedup-counts}
+#| echo: false
+cat(sprintf("Rolls drawn:                       %s\n", format(n_sims, big.mark = ",")))
+cat(sprintf("Distinct dice combinations seen:   %d  (of %d possible)\n", n_multisets, choose(10, 5)))
+cat(sprintf("Situations that change the answer: %d  (the best group size, 1..5)\n", n_classes))
+```
+
+The win probability depends only on the best matching group, so every trial lands in one
+of just `r n_classes` buckets. The simulation's *entire* output is how often each bucket
+occurs — and the Monte Carlo estimate is nothing but those frequencies weighted by the
+exact completion probability $(1/6)^{5-k}$:
+
+```{r dedup-table}
+#| echo: false
+cmp <- rbind(`Empirical (from the sim)` = emp,
+             `Exact (duplicates removed)` = exact_shape)
+colnames(cmp) <- paste0(1:5, "-of-a-kind")
+knitr::kable(round(cmp, 6),
+             caption = "Share of trials by best group size: noisy empirical vs. exact")
+```
+
+```{r dedup-recover}
+#| echo: false
+cat(sprintf("Monte Carlo estimate (empirical weights): %s  (SE = %s)\n", fmt(est_mc), fmt(se_mc)))
+cat(sprintf("Exact (duplicates removed)              : %s  (= 221/17496)\n", fmt(P_EXACT)))
+cat(sprintf("Difference                              : %+.2e\n", est_mc - P_EXACT))
+```
+
+Swap the empirical frequencies for their exact values — that is, remove the sampling noise
+the duplicate rolls carry — and the estimate snaps to `221/17496` exactly. **That swap is
+the enumeration.** A million rolls, only `r n_multisets` distinct combinations, and just
+`r n_classes` outcomes that matter: the extra trials were almost entirely redundant.
+
+## A note on scope
+
+This answers "maximize the probability of a **Yahtzee specifically**." In a real game the
+best play from an all-different roll also depends on which scoring boxes are still open
+(you might chase a large straight instead) — a different, scorecard-dependent question.
+
+---
+
+*Reproducible source: `report.qmd`. Render with `quarto render report.qmd`. The standalone
+R scripts `exact.R` (analysis) and `histogram.R` (shape distribution) contain the same
+logic. See `../FINDINGS.md` for how this resolves the original 2019 analysis.*
