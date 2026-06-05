@@ -88,14 +88,14 @@ for **both** strategies. There is no lift; the difference is exactly 0.
 ## No simulation required
 The whole problem is small enough to solve **exactly by enumeration** — the second roll
 has only `6^5 = 7776` equally likely outcomes (Strategy 2) or `6^4 = 1296` once the held
-die is fixed (Strategy 1), and the final roll contributes a closed `(1/6)^{\text{need}}`.
+die is fixed (Strategy 1), and the final roll contributes a closed $(1/6)^{\text{need}}$.
 The number above is the exact average over every case, not an estimate. A Monte Carlo run
 appears later only as an independent cross-check.
 :::
 
 ## Exact by enumeration
 
-Because the completing roll is just `(1/6)^{\text{need}}`, the only thing to enumerate is
+Because the completing roll is just $(1/6)^{\text{need}}$, the only thing to enumerate is
 the second roll. We visit **every** outcome, weight each equally, and average the exact
 win probability — no randomness anywhere.
 
